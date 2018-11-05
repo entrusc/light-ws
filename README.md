@@ -1,7 +1,7 @@
 Light-WS
 ========
 
-Sometimes a full the blown spring framework is not an option, and neither is
+Sometimes a full blown spring framework is not an option, and neither is
 an application server (e.g. when resources are limited). This library is a
 lightweight REST webservice implementation. It is based on jetty and is capable
 of starting a webservice on a low-end device like the Raspberry Pi in a few seconds
