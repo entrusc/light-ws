@@ -38,5 +38,5 @@ Then you can start the webserver like this:
     ));
     server.start();
 
-Now you should be able to open ´http://localhost:8080/ws/get/some/info/123` and
+Now you should be able to open http://localhost:8080/ws/get/some/info/123 and
 get a nice greeting.
