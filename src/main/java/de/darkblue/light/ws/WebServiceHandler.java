@@ -103,6 +103,7 @@ public class WebServiceHandler<T> extends AbstractHandler {
                         final Object result = mapping.getMethod().invoke(service, parameters);
                         if (result != null) {
                             response.setContentType("application/json; charset=utf-8");
+                            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                             objectMapper.writeValue(response.getOutputStream(), result);
                         }
                         response.setStatus(HttpServletResponse.SC_OK);
