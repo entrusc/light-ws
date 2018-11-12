@@ -49,9 +49,9 @@ get a nice greeting. And you should also be able to post a JSON to /ws/post/sth.
 
 Note that you can also mix get(path) parameters and post like this:
 
-        @PostMapping("/post/sth/{name}")
-        public void getSomePost(@PostParameter MyObject obj,
-                        @GetParameter("name") String name) {
-            // (expects the post parameter to be type application/json)
-            // do sth. with obj ...
-        }
+    @PostMapping("/post/sth/{name}")
+    public void getSomePost(@PostParameter MyObject obj,
+                    @GetParameter("name") String name) {
+        // (expects the post parameter to be type application/json)
+        // do sth. with obj ...
+    }
