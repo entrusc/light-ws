@@ -29,6 +29,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * Annotate any parameter in a webservice method
+ * annotated with {@link GetMapping} or {@link PostMapping}
+ * to map path placeholders like &#123;xxx&#125; to this
+ * parameter.
  *
  * @author Florian Frankenberger
  */

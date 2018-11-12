@@ -28,6 +28,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Annotate any public method in a class annotated with
+ * {@link WebService} to make this method available as
+ * web service that can be accessed via POST.
+
+* @author Florian Frankenberger
+ */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface PostMapping {

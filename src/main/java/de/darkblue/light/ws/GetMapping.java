@@ -29,6 +29,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * Annotate any public method in a class annotated with
+ * {@link WebService} to make this method available as
+ * web service that can be accessed via GET.
  *
  * @author Florian Frankenberger
  */

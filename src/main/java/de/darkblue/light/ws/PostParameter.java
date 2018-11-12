@@ -31,8 +31,10 @@ import java.lang.annotation.Target;
 /**
  * Every parameter in a method annotated with {@link PostMapping}, will
  * be considered to be the JSON target of the content posted to this
- * method.
- * 
+ * method. Note that while it is semantically possible to annotate more
+ * than one parameter in a method with this annotation, only the first
+ * one will be used.
+ *
  * @author Florian Frankenberger
  */
 @Target({ElementType.PARAMETER})
