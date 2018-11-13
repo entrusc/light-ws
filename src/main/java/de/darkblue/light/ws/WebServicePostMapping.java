@@ -39,7 +39,7 @@ public class WebServicePostMapping extends WebServiceMapping {
 
     private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();
 
-    private Class<?> postParamType;
+    private Class<?> postParamType = null;
     private int postParamPos;
 
     public WebServicePostMapping(String pathSuffix, Method method) {
@@ -58,22 +58,24 @@ public class WebServicePostMapping extends WebServiceMapping {
                 return; //we take the first best post param (there shoud not be more than one!)
             }
         }
-        throw new IllegalStateException("no post parameter declared in method " + getMethod());
+        //if no post parameter is declared then we pass the parameter
     }
 
     @Override
     protected void addParameters(HttpServletRequest request, Object[] parameters) {
-        if (request.getContentType().trim().toLowerCase().startsWith("application/json")) {
-            try (Reader reader = request.getReader()) {
-                Object postParameter = OBJECT_READER.forType(postParamType).readValue(reader);
-                parameters[postParamPos] = postParameter;
-            } catch (IOException ex) {
-                throw new IllegalArgumentException("Given post parameter could "
-                        + "not be converted to type " + postParamType, ex);
+        if (this.postParamType != null) {
+            if (request.getContentType().trim().toLowerCase().startsWith("application/json")) {
+                try (Reader reader = request.getReader()) {
+                    Object postParameter = OBJECT_READER.forType(postParamType).readValue(reader);
+                    parameters[postParamPos] = postParameter;
+                } catch (IOException ex) {
+                    throw new IllegalArgumentException("Given post parameter could "
+                            + "not be converted to type " + postParamType, ex);
+                }
+            } else {
+                throw new IllegalArgumentException("Given post parameter was of type \"" + request.getContentType()
+                        + "\" and not of type application/json");
             }
-        } else {
-            throw new IllegalArgumentException("Given post parameter was of type \"" + request.getContentType()
-                    + "\" and not of type application/json");
         }
     }
 
