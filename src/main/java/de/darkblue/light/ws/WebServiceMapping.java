@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -92,10 +93,13 @@ abstract class WebServiceMapping {
                     final Object[] parameters = formatPathParameters(matcher);
                     addParameters(request, parameters);
                     final Object result = getMethod().invoke(service, parameters);
+
+                    response.setContentType("application/json; charset=utf-8");
+                    response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                     if (result != null) {
-                        response.setContentType("application/json; charset=utf-8");
-                        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                         OBJECT_WRITER.writeValue(response.getOutputStream(), result);
+                    } else {
+                        response.getOutputStream().write("{}".getBytes(Charset.forName("UTF-8")));
                     }
                     response.setStatus(HttpServletResponse.SC_OK);
                 } catch (Throwable t) {
