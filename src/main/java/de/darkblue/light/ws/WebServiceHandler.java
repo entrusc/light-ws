@@ -36,7 +36,7 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
 /**
- * A handler for a jetty webserver to handle classes annotated
+ * A handler for a jetty web server to handle classes annotated
  * as WebService.
  *
  * @author Florian Frankenberger

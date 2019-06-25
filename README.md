@@ -33,6 +33,13 @@ example
             // do sth. with obj ...
         }
 
+        @PostMapping("/upload")
+        @ResultMimeType("text/html; charset=utf-8") //without this the default mime type is text/plain
+        public String uploadFile(@PostParameter UploadedFile uploadedFile) {
+            // use uploadedFile.openInputStream() to open the uploaded file for reading
+            return "<html><h1>Uploaded successfully</h1></html>";
+        }
+
     }
 
 Then you can start the webserver like this:

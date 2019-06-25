@@ -25,6 +25,7 @@ package de.darkblue.light.ws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.charset.Charset;
@@ -44,6 +45,8 @@ import javax.servlet.http.HttpServletResponse;
 abstract class WebServiceMapping {
 
     private static final Logger LOGGER = Logger.getLogger(WebServiceMapping.class.getCanonicalName());
+
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final ObjectWriter OBJECT_WRITER = new ObjectMapper().writer();
     private static final String PARAM_PATTERN = "\\{(.*?)\\}";
     private static final String PARAM_MATCH_PATTERN = "([^\\/]+?)";
@@ -56,6 +59,8 @@ abstract class WebServiceMapping {
 
     private final Method method;
     private final Map<Integer, Integer> parameterMapping = new HashMap<>();
+
+    private String resultMimeType;
 
     public WebServiceMapping(HttpMethod httpMethod, String pathSuffix,
             Method method) {
@@ -89,25 +94,52 @@ abstract class WebServiceMapping {
         if (getHttpMethod().matches(request.getMethod())) {
             Matcher matcher = getPattern().matcher(target);
             if (matcher.matches()) {
+                Object[] parameters = null;
                 try {
-                    final Object[] parameters = formatPathParameters(matcher);
+                    parameters = formatPathParameters(matcher);
                     addParameters(request, parameters);
+                } catch (Throwable t) {
+                    LOGGER.log(Level.WARNING, "Could not prepare method " + getMethod() + " call", t);
+                    try {
+                        response.sendError(400);
+                        return true;
+                    } catch (IOException io) {
+                        LOGGER.log(Level.WARNING, "Could not send status 400 to client", io);
+                    }
+                }
+
+                try {
                     final Object result = getMethod().invoke(service, parameters);
 
-                    response.setContentType("application/json; charset=utf-8");
-                    response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                    if (result != null) {
-                        OBJECT_WRITER.writeValue(response.getOutputStream(), result);
+                    if (result instanceof String) {
+                        response.setContentType(this.resultMimeType == null
+                                ? "text/plain; charset=utf-8"
+                                : this.resultMimeType);
+
+                        final String resultStr = (String) result;
+                        response.getOutputStream().write(resultStr.getBytes(UTF8_CHARSET));
                     } else {
-                        response.getOutputStream().write("{}".getBytes(Charset.forName("UTF-8")));
+                        response.setContentType(this.resultMimeType == null
+                                ? "application/json; charset=utf-8"
+                                : this.resultMimeType);
+
+                        if (result != null) {
+                            OBJECT_WRITER.writeValue(response.getOutputStream(), result);
+                        } else {
+                            response.getOutputStream().write("{}".getBytes(UTF8_CHARSET));
+                        }
                     }
+                    response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                     response.setStatus(HttpServletResponse.SC_OK);
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Could not execute method " + getMethod(), t);
-                    response.sendError(400);
-                } finally {
-                    return true;
+                    try {
+                        response.sendError(500);
+                    } catch (IOException io) {
+                        LOGGER.log(Level.WARNING, "Could not send status 500 to client", io);
+                    }
                 }
+                return true;
             }
         }
         return false;
@@ -170,6 +202,14 @@ abstract class WebServiceMapping {
                     + "neither a GetMapping nor a PostMapping annotation");
         }
         path = pathSuffix + rawPattern;
+
+        //prepare result mime type
+        if (method.isAnnotationPresent(ResultMimeType.class)) {
+            String resultMimeTypeValue = method.getAnnotation(ResultMimeType.class).value();
+            if (!resultMimeTypeValue.trim().isEmpty()) {
+                this.resultMimeType = resultMimeTypeValue;
+            }
+        }
 
         //prepare parameter map
         final Map<String, Integer> parameterMap = new HashMap<>();
