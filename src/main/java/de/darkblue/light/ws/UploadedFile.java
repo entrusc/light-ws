@@ -56,6 +56,23 @@ public class UploadedFile {
         return contentType;
     }
 
+    /**
+     * Returns the temporary file where the data
+     * is currently stored. Note that the file
+     * is marked for auto removal when the VM
+     * quits.
+     *
+     * @return
+     */
+    public File getTemporaryFile() {
+        return tmpFile;
+    }
+
+    /**
+     * returns the size of the uploaded file
+     *
+     * @return
+     */
     public long getSize() {
         return this.tmpFile.length();
     }
