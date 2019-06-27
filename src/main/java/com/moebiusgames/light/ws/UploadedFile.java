@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package de.darkblue.light.ws;
+package com.moebiusgames.light.ws;
 
 import java.io.File;
 import java.io.FileInputStream;

@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>de.darkblue</groupId>
+    <groupId>com.moebiusgames</groupId>
     <artifactId>light-ws</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <netbeans.hint.license>mit</netbeans.hint.license>
+    </properties>
+    
     <name>Light Webservice</name>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>9</version>
+    </parent>
 
     <licenses>
         <license>
@@ -15,12 +27,27 @@
         </license>
     </licenses>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <netbeans.hint.license>mit</netbeans.hint.license>
-    </properties>
+    <scm>
+        <url>https://github.com/entrusc/light-ws</url>
+        <connection>scm:git:git@github.com:entrusc/light-ws</connection>
+        <developerConnection>scm:git:git@github.com:entrusc/light-ws</developerConnection>
+    </scm>
+
+    <developers>
+        <developer>
+            <id>entrusc</id>
+            <name>Florian Frankenberger</name>
+            <email>f.frankenberger@moebiusgames.com</email>
+            <url>http://moebiusgames.com</url>
+            <organization>Moebiusgames</organization>
+            <organizationUrl>http://moebiusgames.com</organizationUrl>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
 
     <dependencies>
         <dependency>

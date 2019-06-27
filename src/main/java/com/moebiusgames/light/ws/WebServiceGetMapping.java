@@ -21,21 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package de.darkblue.light.ws;
+package com.moebiusgames.light.ws;
+
+import java.lang.reflect.Method;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  *
  * @author Florian Frankenberger
  */
-@WebService("/web")
-public class PostWebService {
+class WebServiceGetMapping extends WebServiceMapping {
 
-    @PostMapping("/say/{yourname}/{number}")
-    public void saySomething(
-            @GetParameter("yourname") String yourName,
-            @PostParameter InfoObject sth,
-            @GetParameter("number") int number) {
-        System.out.println(sth.getInfo() + " for " + yourName + " and number " + number);
+    public WebServiceGetMapping(String pathSuffix, Method method) {
+        super(HttpMethod.GET, pathSuffix, method);
+    }
+
+    @Override
+    protected void addParameters(HttpServletRequest request, Object[] parameters) {
+        //nothing more to do as get/path parameters are already mapped
     }
 
 }
