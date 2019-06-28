@@ -25,6 +25,7 @@ package com.moebiusgames.light.ws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -49,7 +50,7 @@ public class WebServicePostMapping extends WebServiceMapping {
     private static final Pattern MULTIPART_CONTENT_DISPOSITION_PATTERN = Pattern.compile("^Content\\-Disposition\\:[\\s]+form-data.*", Pattern.DOTALL);
     private static final Pattern MULTIPART_CONTENT_DISPOSITION_FILENAME_PATTERN = Pattern.compile("filename\\=\\\"(.*?)\\\"", Pattern.DOTALL);
     private static final Pattern MULTIPART_CONTENT_TYPE_PATTERN = Pattern.compile("^Content\\-Type\\:[\\s]+(.*)", Pattern.DOTALL);
-    private static final ObjectReader OBJECT_READER = new ObjectMapper().reader();
+    private static final ObjectReader OBJECT_READER = new ObjectMapper().registerModule(new JavaTimeModule()).reader();
 
     private Class<?> postParamType = null;
     private int postParamPos;
