@@ -25,6 +25,7 @@ package com.moebiusgames.light.ws;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -47,7 +48,8 @@ abstract class WebServiceMapping {
     private static final Logger LOGGER = Logger.getLogger(WebServiceMapping.class.getCanonicalName());
 
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
-    private static final ObjectWriter OBJECT_WRITER = new ObjectMapper().writer();
+    private static final ObjectWriter OBJECT_WRITER = new ObjectMapper()
+            .registerModule(new JavaTimeModule()).writer();
     private static final String PARAM_PATTERN = "\\{(.*?)\\}";
     private static final String PARAM_MATCH_PATTERN = "([^\\/]+?)";
     private static final Pattern URL_PATTERN = Pattern.compile(PARAM_PATTERN);
