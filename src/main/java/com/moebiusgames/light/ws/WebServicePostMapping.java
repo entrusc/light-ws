@@ -54,8 +54,8 @@ public class WebServicePostMapping extends WebServiceMapping {
     private Class<?> postParamType = null;
     private int postParamPos;
 
-    public WebServicePostMapping(String pathSuffix, Method method) {
-        super(HttpMethod.POST, pathSuffix, method);
+    public WebServicePostMapping(String pathPrefix, Method method) {
+        super(HttpMethod.POST, pathPrefix, method);
         initPostParameter();
     }
 

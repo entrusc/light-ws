@@ -32,8 +32,8 @@ import javax.servlet.http.HttpServletRequest;
  */
 class WebServiceGetMapping extends WebServiceMapping {
 
-    public WebServiceGetMapping(String pathSuffix, Method method) {
-        super(HttpMethod.GET, pathSuffix, method);
+    public WebServiceGetMapping(String pathPrefix, Method method) {
+        super(HttpMethod.GET, pathPrefix, method);
     }
 
     @Override

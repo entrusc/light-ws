@@ -92,12 +92,12 @@ public class WebServiceHandler<T> extends AbstractHandler {
         }
     }
 
-    private static WebServiceMapping prepareMapping(String pathSuffix, Method method) {
+    private static WebServiceMapping prepareMapping(String pathPrefix, Method method) {
         if (method.isAnnotationPresent(GetMapping.class)) {
-            return new WebServiceGetMapping(pathSuffix, method);
+            return new WebServiceGetMapping(pathPrefix, method);
         } else
             if (method.isAnnotationPresent(PostMapping.class)) {
-                return new WebServicePostMapping(pathSuffix, method);
+                return new WebServicePostMapping(pathPrefix, method);
             }
         return null;
     }

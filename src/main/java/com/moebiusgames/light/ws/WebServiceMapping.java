@@ -62,9 +62,9 @@ abstract class WebServiceMapping {
 
     private String resultMimeType;
 
-    public WebServiceMapping(HttpMethod httpMethod, String pathSuffix,
+    public WebServiceMapping(HttpMethod httpMethod, String pathPrefix,
             Method method) {
-        initMapping(pathSuffix, method);
+        initMapping(pathPrefix, method);
         this.httpMethod = httpMethod;
         this.method = method;
     }
@@ -188,7 +188,7 @@ abstract class WebServiceMapping {
         return result;
     }
 
-    private void initMapping(String pathSuffix, Method method) {
+    private void initMapping(String pathPrefix, Method method) {
         String rawPattern = null;
         if (method.isAnnotationPresent(GetMapping.class)) {
             rawPattern = method.getAnnotation(GetMapping.class).value();
@@ -201,7 +201,7 @@ abstract class WebServiceMapping {
             throw new IllegalStateException("Given method " + method + " has "
                     + "neither a GetMapping nor a PostMapping annotation");
         }
-        path = pathSuffix + rawPattern;
+        path = pathPrefix + rawPattern;
 
         //prepare result mime type
         if (method.isAnnotationPresent(ResultMimeType.class)) {
@@ -239,7 +239,7 @@ abstract class WebServiceMapping {
         boolean endsWithPattern = rawPattern.endsWith("}");
         StringBuilder patternStr = new StringBuilder();
         patternStr.append('^');
-        patternStr.append(Pattern.quote(pathSuffix));
+        patternStr.append(Pattern.quote(pathPrefix));
         boolean first = true;
         for (String str : rawPattern.split(PARAM_PATTERN)) {
             if (first) {
