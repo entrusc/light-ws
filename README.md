@@ -48,7 +48,7 @@ Then you can start the webserver like this:
 ```java
 Server server = new Server(8080);
 server.setHandler(new HandlerList(
-        new WebServiceHandler(new MyWebService())
+        new WebServiceHandler<>(new MyWebService())
         //...
 ));
 server.start();
