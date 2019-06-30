@@ -38,7 +38,7 @@ public class UploadedFile {
     private final String fileName;
     private final String contentType;
 
-    UploadedFile(File tmpFile, String fileName, String contentType) {
+    public UploadedFile(File tmpFile, String fileName, String contentType) {
         this.tmpFile = tmpFile;
         this.fileName = fileName;
         this.contentType = contentType;

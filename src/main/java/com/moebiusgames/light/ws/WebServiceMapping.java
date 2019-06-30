@@ -64,6 +64,8 @@ abstract class WebServiceMapping {
 
     private String resultMimeType;
 
+    private Integer fullRequestParameterIndex = null;
+
     public WebServiceMapping(HttpMethod httpMethod, String pathPrefix,
             Method method) {
         initMapping(pathPrefix, method);
@@ -100,6 +102,10 @@ abstract class WebServiceMapping {
                 try {
                     parameters = formatPathParameters(matcher);
                     addParameters(request, parameters);
+
+                    if (fullRequestParameterIndex != null) {
+                        parameters[fullRequestParameterIndex] = request;
+                    }
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Could not prepare method " + getMethod() + " call", t);
                     try {
@@ -198,6 +204,13 @@ abstract class WebServiceMapping {
             if (method.isAnnotationPresent(PostMapping.class)) {
                 rawPattern = method.getAnnotation(PostMapping.class).value();
             }
+
+        final Class<?>[] parameterTypes = method.getParameterTypes();
+        for (int i = 0; i < parameterTypes.length; ++i) {
+            if (parameterTypes[i] == HttpServletRequest.class) {
+                fullRequestParameterIndex = i;
+            }
+        }
 
         if (rawPattern == null) {
             throw new IllegalStateException("Given method " + method + " has "

@@ -33,6 +33,8 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,6 +57,8 @@ public class WebServicePostMapping extends WebServiceMapping {
     private Class<?> postParamType = null;
     private int postParamPos;
 
+    private boolean raw = false;
+
     public WebServicePostMapping(String pathPrefix, Method method) {
         super(HttpMethod.POST, pathPrefix, method);
         initPostParameter();
@@ -65,9 +69,18 @@ public class WebServicePostMapping extends WebServiceMapping {
         final Parameter[] parameters = method.getParameters();
         for (int i = 0; i < parameters.length; ++i) {
             final Parameter param = parameters[i];
-            if (param.isAnnotationPresent(PostParameter.class)) {
+            if (param.isAnnotationPresent(PostParameter.class)
+                    || param.isAnnotationPresent(RawPostData.class)) {
                 postParamPos = i;
                 postParamType = param.getType();
+
+                if (param.isAnnotationPresent(RawPostData.class)) {
+                    if (postParamType != File.class) {
+                        throw new IllegalStateException("Raw post parameter must be of type File");
+                    }
+                    raw = true;
+
+                }
                 return; //we take the first best post param (there shoud not be more than one!)
             }
         }
@@ -77,15 +90,34 @@ public class WebServicePostMapping extends WebServiceMapping {
     @Override
     protected void addParameters(HttpServletRequest request, Object[] parameters) {
         if (this.postParamType != null) {
-            final String contentType = request.getContentType().trim().toLowerCase();
-            if (contentType.startsWith("application/json")) {
-                handleJsonPost(request, parameters);
-            } else if (contentType.startsWith("multipart/form-data")) {
-                handleMultipartPost(request, parameters);
+            if (!raw) {
+                final String contentType = request.getContentType().trim().toLowerCase();
+                if (contentType.startsWith("application/json")) {
+                    handleJsonPost(request, parameters);
+                } else if (contentType.startsWith("multipart/form-data")) {
+                    handleMultipartPost(request, parameters);
+                } else {
+                    throw new IllegalArgumentException("Given post parameter was of type \"" + request.getContentType()
+                            + "\" and not of type application/json or multipart/form-data");
+                }
             } else {
-                throw new IllegalArgumentException("Given post parameter was of type \"" + request.getContentType()
-                        + "\" and not of type application/json or multipart/form-data");
+                handleRawPost(request, parameters);
             }
+        }
+    }
+
+    private void handleRawPost(HttpServletRequest request, Object[] parameters) {
+        try {
+            final File tmpFile = File.createTempFile("raw", ".dat");
+            tmpFile.deleteOnExit(); //make sure we clean up our mess
+
+            try (InputStream in = request.getInputStream()) {
+                Files.copy(in, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            parameters[this.postParamPos] = tmpFile;
+        } catch (IOException e) {
+            throw new IllegalStateException("Can't store raw post content", e);
         }
     }
 
