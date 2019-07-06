@@ -26,7 +26,9 @@ package com.moebiusgames.light.ws;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.moebiusgames.light.ws.MultipartSplitter.MultipartSection;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,8 +37,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,19 +48,24 @@ import javax.servlet.http.HttpServletRequest;
  */
 public class WebServicePostMapping extends WebServiceMapping {
 
-    private static final Pattern MULTIPART_BOUNDARY_PATTERN = Pattern.compile("boundary\\=(.+)", Pattern.DOTALL);
-    private static final Pattern MULTIPART_CONTENT_DISPOSITION_PATTERN = Pattern.compile("^Content\\-Disposition\\:[\\s]+form-data.*", Pattern.DOTALL);
-    private static final Pattern MULTIPART_CONTENT_DISPOSITION_FILENAME_PATTERN = Pattern.compile("filename\\=\\\"(.*?)\\\"", Pattern.DOTALL);
-    private static final Pattern MULTIPART_CONTENT_TYPE_PATTERN = Pattern.compile("^Content\\-Type\\:[\\s]+(.*)", Pattern.DOTALL);
+    private static final Pattern MULTIPART_BOUNDARY_PATTERN = Pattern.compile("boundary\\=(.+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MULTIPART_CONTENT_DISPOSITION_PATTERN = Pattern.compile("^Content\\-Disposition\\:[\\s]+form-data", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MULTIPART_CONTENT_DISPOSITION_FILENAME_PATTERN = Pattern.compile("filename\\=\\\"(.*?)\\\"", Pattern.CASE_INSENSITIVE);
+    private static final Pattern MULTIPART_CONTENT_TYPE_PATTERN = Pattern.compile("^Content\\-Type\\:[\\s]+(.+)[\\r\\n]+?", Pattern.CASE_INSENSITIVE);
+
     private static final ObjectReader OBJECT_READER = new ObjectMapper().registerModule(new JavaTimeModule()).reader();
+
+    private final MultipartSplitter multipartSplitter;
 
     private Class<?> postParamType = null;
     private int postParamPos;
 
     private boolean raw = false;
 
-    public WebServicePostMapping(String pathPrefix, Method method) {
+    public WebServicePostMapping(String pathPrefix, Method method,
+            MultipartSplitter multipartSplitter) {
         super(HttpMethod.POST, pathPrefix, method);
+        this.multipartSplitter = multipartSplitter;
         initPostParameter();
     }
 
@@ -140,89 +145,93 @@ public class WebServicePostMapping extends WebServiceMapping {
         if (!matcher.find()) {
             throw new IllegalArgumentException("multipart not properly structured");
         }
-        final String delimeter = matcher.group(1);
-        if (delimeter.trim().isEmpty()) {
+        final String boundary = "--" + matcher.group(1);
+        if (boundary.trim().isEmpty()) {
             throw new IllegalArgumentException("delimeter must not be blank");
         }
 
-        String fileName = "unnamed";
-        String fileContentType = "application/octet-stream";
-        try (InputStream in = request.getInputStream()) {
-            String line;
-            while ((line = readLine(in)) != null
-                    && !line.trim().isEmpty()) {
-                if (MULTIPART_CONTENT_DISPOSITION_PATTERN.matcher(line).matches()) {
-                    final Matcher fileNameMatcher = MULTIPART_CONTENT_DISPOSITION_FILENAME_PATTERN.matcher(line);
-                    if (fileNameMatcher.find()) {
-                        fileName = fileNameMatcher.group(1);
-                    }
-                } else {
-                    final Matcher contentTypeMatcher = MULTIPART_CONTENT_TYPE_PATTERN.matcher(line);
-                    if (contentTypeMatcher.matches()) {
-                        fileContentType = contentTypeMatcher.group(1);
-                    }
-                }
+        try {
+            File tmpFile = File.createTempFile("uploaded", ".dat");
+            tmpFile.deleteOnExit();
+
+            try (InputStream in = request.getInputStream()) {
+                Files.copy(in, tmpFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
 
-            //now we read the content of the file until we meet the delimeter
-            final File tmpFile = File.createTempFile("uploaded", ".dat");
-            tmpFile.deleteOnExit(); //make sure we clean up our mess
+            // now parse the uploaded content for multipart boundaries
+            List<MultipartSection> sections = multipartSplitter.split(boundary, tmpFile);
+            UploadedFile uploadedFile = null;
 
-            byte[] storedLine = null;
-            try (FileOutputStream fOut = new FileOutputStream(tmpFile)) {
-                byte[] rawLine;
-                while ((rawLine = readRawLine(in)) != null) {
-                    if (new String(rawLine).trim().equals("--" + delimeter)) {
-                        if (storedLine != null) {
-                            //remove CR & LF from last line as it is already part of the delimeter!
-                            byte[] lastLine = Arrays.copyOf(storedLine, storedLine.length - 2);
-                            fOut.write(lastLine);
+            // extract sections to find the one with a file
+            MultipartSection fileSection = null;
+            String fileName = null;
+            String fileContentType = null;
+            int bytesOffset = 0;
+            for (MultipartSection section : sections) {
+                try (LineReaderInputStream in = new LineReaderInputStream(new FileInputStream(tmpFile))) {
+                    in.skip(section.getStart());
+
+                    String line;
+                    bytesOffset = 0;
+                    while ((line = in.readLine()) != null
+                            && !line.trim().isEmpty()) {
+                        if (MULTIPART_CONTENT_DISPOSITION_PATTERN.matcher(line).find()) {
+                            final Matcher fileNameMatcher = MULTIPART_CONTENT_DISPOSITION_FILENAME_PATTERN.matcher(line);
+                            if (fileNameMatcher.find()) {
+                                fileName = fileNameMatcher.group(1);
+                            }
+                        } else {
+                            final Matcher contentTypeMatcher = MULTIPART_CONTENT_TYPE_PATTERN.matcher(line);
+                            if (contentTypeMatcher.find()) {
+                                fileContentType = contentTypeMatcher.group(1);
+                            }
                         }
+                        bytesOffset += line.length();
+                    }
+                    bytesOffset += 2;
+
+                    //found a file - mark it and break loop
+                    if (fileContentType != null) {
+                        fileSection = section;
                         break;
-                    } else {
-                        if (storedLine != null) {
-                            fOut.write(storedLine);
-                        }
-                        storedLine = rawLine;
                     }
                 }
             }
 
-            if (tmpFile.length() == 0) {
-                throw new IllegalArgumentException("No file uploaded");
+            //now actually extract the file
+            if (fileSection != null) {
+                try (FileInputStream in = new FileInputStream(tmpFile)) {
+                    in.skip(fileSection.getStart() + bytesOffset);
+
+                    byte[] buffer = new byte[4096];
+                    int read;
+
+                    File tmpPartFile = File.createTempFile("part", ".dat");
+                    tmpPartFile.deleteOnExit();
+
+                    int bytesLeft = fileSection.getEnd() - (fileSection.getStart() + bytesOffset);
+                    try (FileOutputStream fOut = new FileOutputStream(tmpPartFile)) {
+                        while (bytesLeft > 0
+                                && (read = in.read(buffer, 0, Math.min(bytesLeft, buffer.length))) > -1) {
+                            if (read > 0) {
+                                fOut.write(buffer, 0, read);
+                                bytesLeft -= read;
+                            }
+                        }
+                    }
+                    uploadedFile = new UploadedFile(tmpPartFile, fileName, contentType);
+                }
             }
-            parameters[postParamPos] = new UploadedFile(tmpFile, fileName, fileContentType);
-        } catch (IOException ex) {
-            throw new IllegalArgumentException("Given post parameter could "
-                    + "not be converted to type " + postParamType, ex);
-        }
-    }
 
-    private static byte[] readRawLine(InputStream in) throws IOException {
-        List<Byte> bytes = new ArrayList<>();
-
-        int b;
-        while ((b = in.read()) >= 0) {
-            bytes.add((byte) b);
-            if (b == '\n') break;
-            if (b == -1 && bytes.isEmpty()) {
-                return null; // end of stream
+            if (uploadedFile == null) {
+                throw new IllegalArgumentException("Could not find a file in uploaded multipart content");
             }
+            parameters[this.postParamPos] = uploadedFile;
+
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Could not decode multipart body", e);
         }
 
-        byte[] data = new byte[bytes.size()];
-        for (int i = 0; i < bytes.size(); ++i) {
-            data[i] = bytes.get(i);
-        }
-
-        return data;
-    }
-
-    private static String readLine(InputStream in) throws IOException {
-        final byte[] rawLine = readRawLine(in);
-        return rawLine != null
-                ? new String(rawLine).trim()
-                : null;
     }
 
 }

@@ -51,6 +51,10 @@ public class WebServiceHandler<T> extends AbstractHandler {
     private final List<WebServiceMapping> methodMappings = new ArrayList<>();
 
     public WebServiceHandler(T service) {
+        this(service, new DefaultMultipartSplitter());
+    }
+
+    public WebServiceHandler(T service, MultipartSplitter multipartSplitter) {
         this.service = service;
         final Class<? extends Object> serviceClass = service.getClass();
 
@@ -60,7 +64,7 @@ public class WebServiceHandler<T> extends AbstractHandler {
             for (Method method : serviceClass.getMethods()) {
                 if (method.isAnnotationPresent(GetMapping.class)
                         || method.isAnnotationPresent(PostMapping.class)) {
-                    WebServiceMapping mapping = prepareMapping(pathPrefix, method);
+                    WebServiceMapping mapping = prepareMapping(pathPrefix, method, multipartSplitter);
                     if (mapping != null) {
                         LOGGER.log(Level.INFO, "Registering [{0}] for {1}.{2}()",
                                 new Object[]{mapping.getPath(), serviceClass.getSimpleName(), method.getName()});
@@ -92,12 +96,13 @@ public class WebServiceHandler<T> extends AbstractHandler {
         }
     }
 
-    private static WebServiceMapping prepareMapping(String pathPrefix, Method method) {
+    private WebServiceMapping prepareMapping(String pathPrefix, Method method,
+            MultipartSplitter multipartSplitter) {
         if (method.isAnnotationPresent(GetMapping.class)) {
             return new WebServiceGetMapping(pathPrefix, method);
         } else
             if (method.isAnnotationPresent(PostMapping.class)) {
-                return new WebServicePostMapping(pathPrefix, method);
+                return new WebServicePostMapping(pathPrefix, method, multipartSplitter);
             }
         return null;
     }
