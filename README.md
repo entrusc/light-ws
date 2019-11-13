@@ -12,10 +12,21 @@ license
 Light-WS is licensed under MIT license and can therefore be used in any project, even
 for commercial ones.
 
-build
+usage
 =====
+for Gradle
+```java
+compile 'com.moebiusgames:light-ws:1.2'
+```
 
-    mvn clean package
+for Maven
+```
+<dependency>
+    <groupId>com.moebiusgames</groupId>
+    <artifactId>light-ws</artifactId>
+    <version>1.2</version>
+</dependency>
+```
 
 example
 =======
@@ -66,3 +77,8 @@ public void getSomePost(@PostParameter MyObject obj,
     // do sth. with obj ...
 }
 ```
+
+build
+=====
+
+    mvn clean package
