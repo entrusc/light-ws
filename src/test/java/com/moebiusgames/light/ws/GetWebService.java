@@ -23,10 +23,6 @@
  */
 package com.moebiusgames.light.ws;
 
-import com.moebiusgames.light.ws.WebService;
-import com.moebiusgames.light.ws.GetParameter;
-import com.moebiusgames.light.ws.GetMapping;
-
 /**
  *
  * @author Florian Frankenberger
@@ -40,6 +36,16 @@ public class GetWebService {
             String name
     ) {
         return new ResultObject("Hello " + name);
+    }
+
+    @GetMapping("/test2")
+    public Response<ResultObject> testMe2() {
+        return new Response<>(new ResultObject("Hello there"), 500);
+    }
+
+    @GetMapping("/test3")
+    public Response<ResultObject> testMe3() {
+        return new Response<>(null, 404);
     }
 
 }

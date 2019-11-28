@@ -23,11 +23,6 @@
  */
 package com.moebiusgames.light.ws;
 
-import com.moebiusgames.light.ws.PostMapping;
-import com.moebiusgames.light.ws.WebService;
-import com.moebiusgames.light.ws.GetParameter;
-import com.moebiusgames.light.ws.PostParameter;
-
 /**
  *
  * @author Florian Frankenberger
@@ -36,11 +31,12 @@ import com.moebiusgames.light.ws.PostParameter;
 public class PostWebService {
 
     @PostMapping("/say/{yourname}/{number}")
-    public void saySomething(
+    public ResultObject saySomething(
             @GetParameter("yourname") String yourName,
             @PostParameter InfoObject sth,
             @GetParameter("number") int number) {
-        System.out.println(sth.getInfo() + " for " + yourName + " and number " + number);
+
+        return new ResultObject(sth.getInfo() + " for " + yourName + " and number " + number);
     }
 
 }

@@ -94,7 +94,7 @@ abstract class WebServiceMapping {
     }
 
     public boolean execute(Object service, String target,
-            HttpServletRequest request, HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse httpResponse) {
         if (getHttpMethod().matches(request.getMethod())) {
             Matcher matcher = getPattern().matcher(target);
             if (matcher.matches()) {
@@ -109,7 +109,7 @@ abstract class WebServiceMapping {
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Could not prepare method " + getMethod() + " call", t);
                     try {
-                        response.sendError(400);
+                        httpResponse.sendError(400);
                         return true;
                     } catch (IOException io) {
                         LOGGER.log(Level.WARNING, "Could not send status 400 to client", io);
@@ -117,32 +117,39 @@ abstract class WebServiceMapping {
                 }
 
                 try {
-                    final Object result = getMethod().invoke(service, parameters);
+                    httpResponse.setStatus(HttpServletResponse.SC_OK);
+
+                    Object result = getMethod().invoke(service, parameters);
+                    if (result instanceof Response) {
+                        Response response = (Response) result;
+                        result = response.getResponseObject();
+
+                        httpResponse.setStatus(response.getStatusCode());
+                    }
 
                     if (result instanceof String) {
-                        response.setContentType(this.resultMimeType == null
+                        httpResponse.setContentType(this.resultMimeType == null
                                 ? "text/plain; charset=utf-8"
                                 : this.resultMimeType);
 
                         final String resultStr = (String) result;
-                        response.getOutputStream().write(resultStr.getBytes(UTF8_CHARSET));
+                        httpResponse.getOutputStream().write(resultStr.getBytes(UTF8_CHARSET));
                     } else {
-                        response.setContentType(this.resultMimeType == null
+                        httpResponse.setContentType(this.resultMimeType == null
                                 ? "application/json; charset=utf-8"
                                 : this.resultMimeType);
 
                         if (result != null) {
-                            OBJECT_WRITER.writeValue(response.getOutputStream(), result);
+                            OBJECT_WRITER.writeValue(httpResponse.getOutputStream(), result);
                         } else {
-                            response.getOutputStream().write("{}".getBytes(UTF8_CHARSET));
+                            httpResponse.getOutputStream().write("{}".getBytes(UTF8_CHARSET));
                         }
                     }
-                    response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-                    response.setStatus(HttpServletResponse.SC_OK);
+                    httpResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
                 } catch (Throwable t) {
                     LOGGER.log(Level.WARNING, "Could not execute method " + getMethod(), t);
                     try {
-                        response.sendError(500);
+                        httpResponse.sendError(500);
                     } catch (IOException io) {
                         LOGGER.log(Level.WARNING, "Could not send status 500 to client", io);
                     }

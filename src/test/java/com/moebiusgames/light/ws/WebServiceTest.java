@@ -23,9 +23,16 @@
  */
 package com.moebiusgames.light.ws;
 
-import com.moebiusgames.light.ws.WebServiceHandler;
+import java.io.IOException;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerList;
+import static org.junit.Assert.assertEquals;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestTemplate;
 
 /**
  *
@@ -33,33 +40,85 @@ import org.eclipse.jetty.server.handler.HandlerList;
  */
 public class WebServiceTest {
 
-    private Server server;
+    private RestTemplate restTemplate;
 
     public WebServiceTest() {
     }
 
-//    @Test
-    public void testPostMapping() throws Exception {
-        server = new Server(8888);
-        server.setHandler(new HandlerList(
-                new WebServiceHandler(new PostWebService())
-        ));
-        server.start();
-        while (server.isRunning()) {
-            Thread.sleep(1000);
-        }
+    @Before
+    public void setUpRestTemplate() {
+        restTemplate = new RestTemplate();
+        restTemplate.setErrorHandler(new ResponseErrorHandler() {
+            @Override
+            public boolean hasError(ClientHttpResponse chr) throws IOException {
+                return false;
+            }
+
+            @Override
+            public void handleError(ClientHttpResponse chr) throws IOException {
+                // do nothing
+            }
+        });
     }
 
-//    @Test
-    public void testGetMapping() throws Exception {
-        server = new Server(8888);
+    private Server setUpWebServer(Object webService) throws Exception {
+        Server server = new Server(0); // 0 = any port
         server.setHandler(new HandlerList(
-                new WebServiceHandler(new GetWebService())
+                new WebServiceHandler(webService)
         ));
+
         server.start();
-        while (server.isRunning()) {
-            Thread.sleep(1000);
-        }
+
+        return server;
+    }
+
+    @Test
+    public void testPostMapping() throws Exception {
+        Server server = setUpWebServer(new PostWebService());
+
+        InfoObject infoObject  = new InfoObject();
+        infoObject.setInfo("some info");
+        final ResultObject response =
+                restTemplate.postForObject(server.getURI().resolve("/web/say/foobar/12345"), infoObject, ResultObject.class);
+        assertEquals("some info for foobar and number 12345", response.getMsg());
+
+        server.stop();
+    }
+
+    @Test
+    public void testSimpleGetMapping() throws Exception {
+        Server server = setUpWebServer(new GetWebService());
+
+        ResponseEntity<ResultObject> response =
+                restTemplate.getForEntity(server.getURI().resolve("/web/test/world"), ResultObject.class);
+        assertEquals("Hello world", response.getBody().getMsg());
+        assertEquals(200, response.getStatusCodeValue());
+
+        server.stop();
+    }
+
+    @Test
+    public void testAdvancedGetMapping() throws Exception {
+        Server server = setUpWebServer(new GetWebService());
+
+        ResponseEntity<ResultObject> response =
+                restTemplate.getForEntity(server.getURI().resolve("/web/test2"), ResultObject.class);
+        assertEquals("Hello there", response.getBody().getMsg());
+        assertEquals(500, response.getStatusCodeValue());
+
+        server.stop();
+    }
+
+    @Test
+    public void testGetNullMapping() throws Exception {
+        Server server = setUpWebServer(new GetWebService());
+
+        ResponseEntity<String> response =
+                restTemplate.getForEntity(server.getURI().resolve("/web/test3"), String.class);
+        assertEquals("{}", response.getBody());
+        assertEquals(404, response.getStatusCodeValue());
+
+        server.stop();
     }
 
 }

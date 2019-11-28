@@ -16,7 +16,7 @@ usage
 =====
 for Gradle
 ```java
-compile 'com.moebiusgames:light-ws:1.2'
+compile 'com.moebiusgames:light-ws:1.3'
 ```
 
 for Maven
@@ -24,7 +24,7 @@ for Maven
 <dependency>
     <groupId>com.moebiusgames</groupId>
     <artifactId>light-ws</artifactId>
-    <version>1.2</version>
+    <version>1.3</version>
 </dependency>
 ```
 
@@ -37,6 +37,16 @@ public class MyWebService {
     @GetMapping("/get/some/info/{id}")
     public String getSomeInfo(@GetParameter("id") String id) {
         return "Hello " + id;
+    }
+
+    @GetMapping("/get/some/otherthing/{id}")
+    @ResultMimeType("text/html; charset=utf-8") //without this the default mime type is text/plain
+    public Response<Item> getSomeInfo(@GetParameter("id") int id) {
+        Response<String> response = new Response("Hello " + id);
+        if (id < 100) {
+            return new Response(null, HttpServletResponse.SC_NOT_FOUND);
+        }
+        return new Response(new Item(id), HttpServletResponse.SC_OK);
     }
 
     @PostMapping("/post/sth")

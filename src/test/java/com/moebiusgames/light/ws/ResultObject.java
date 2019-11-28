@@ -29,14 +29,21 @@ package com.moebiusgames.light.ws;
  */
 public class ResultObject {
 
-    private final String msg;
+    private String msg;
+
+    public ResultObject() {
+    }
 
     public ResultObject(String msg) {
+        this.msg = msg;
+    }
+
+    public void setMsg(String msg) {
         this.msg = msg;
     }
 
     public String getMsg() {
         return msg;
     }
-    
+
 }
